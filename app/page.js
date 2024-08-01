@@ -26,6 +26,20 @@ export default function Home() {
   const [updateOpen, setUpdateOpen] = useState(false);
   const [itemName, setItemName] = useState("");
   const [currentItem, setCurrentItem] = useState(null);
+  const [filteredInventory, setFilteredInventory] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    if (query) {
+      setFilteredInventory(
+        inventory.filter(({ name }) => name.toLowerCase().includes(query))
+      );
+    } else {
+      setFilteredInventory(inventory);
+    }
+  };
 
   const updateInventory = async () => {
     const snapshot = query(collection(firestore, "inventory"));
@@ -38,6 +52,7 @@ export default function Home() {
       });
     });
     setInventory(inventoryList);
+    setFilteredInventory(inventoryList); // Set filteredInventory to the full list initially
   };
 
   const addItem = async (item) => {
@@ -64,14 +79,14 @@ export default function Home() {
       } else {
         await setDoc(docRef, { quantity: quantity - 1 });
       }
-      await updateInventory(); // Refresh inventory after removal
+      await updateInventory();
     }
   };
 
   const deleteItem = async (item) => {
     const docRef = doc(collection(firestore, "inventory"), item);
     await deleteDoc(docRef);
-    await updateInventory(); // Refresh inventory after deletion
+    await updateInventory();
   };
 
   const updateItemName = async () => {
@@ -87,23 +102,16 @@ export default function Home() {
       const { quantity } = oldDocSnap.data();
 
       if (newDocSnap.exists()) {
-        // If the new name already exists, add the quantities together
         const { quantity: newQuantity } = newDocSnap.data();
         await setDoc(newDocRef, { quantity: quantity + newQuantity });
       } else {
-        // Otherwise, just set the new doc with the old quantity
         await setDoc(newDocRef, { quantity });
       }
 
-      // Delete the old document
       await deleteDoc(oldDocRef);
-
-      // Clear the input fields and close the modal
       setCurrentItem(null);
       setItemName("");
       setUpdateOpen(false);
-
-      // Refresh the inventory
       await updateInventory();
     }
   };
@@ -135,6 +143,15 @@ export default function Home() {
       alignItems="center"
       gap={2}
     >
+      <Box width="800px" mb={2}>
+        <TextField
+          label="Search Items"
+          variant="outlined"
+          fullWidth
+          value={searchQuery}
+          onChange={handleSearchChange}
+        />
+      </Box>
       <Modal open={open} onClose={handleClose}>
         <Box
           position="absolute"
@@ -223,54 +240,57 @@ export default function Home() {
         </Box>
 
         <Stack width="800px" height="300px" spacing={2} overflow="auto">
-          {inventory.map(({ name, quantity }) => (
-            <Box
-              key={name}
-              width="100%"
-              minHeight="150px"
-              display="flex"
-              alignItems="center"
-              justifyContent="space-between"
-              bgcolor="72bcd4"
-              padding={5}
-            >
-              <Typography variant="h3" color="#333" textAlign="center">
-                {name.charAt(0).toUpperCase() + name.slice(1)}
-              </Typography>
-              <Stack direction="row" spacing={20}>
+          {filteredInventory.length > 0 ? (
+            filteredInventory.map(({ name, quantity }) => (
+              <Box
+                key={name}
+                width="100%"
+                minHeight="150px"
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                bgcolor="72bcd4"
+                padding={5}
+              >
                 <Typography variant="h3" color="#333" textAlign="center">
-                  <Button variant="contained" onClick={() => removeItem(name)}>
-                    -
-                  </Button>
-                  {quantity}
-                  <Button variant="contained" onClick={() => addItem(name)}>
-                    +
-                  </Button>
+                  {name.charAt(0).toUpperCase() + name.slice(1)}
                 </Typography>
-              </Stack>
-              <Stack direction="row" spacing={2}>
-                {/* <Button variant="contained" onClick={() => addItem(name)}>
-                  +
-                </Button>
-                <Button variant="contained" onClick={() => removeItem(name)}>
-                  -
-                </Button> */}
-                <Button
-                  variant="contained"
-                  onClick={() => handleUpdateOpen({ name, quantity })}
-                >
-                  Update
-                </Button>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={() => deleteItem(name)}
-                >
-                  Delete
-                </Button>
-              </Stack>
-            </Box>
-          ))}
+                <Stack direction="row" spacing={20}>
+                  <Typography variant="h3" color="#333" textAlign="center">
+                    <Button
+                      variant="contained"
+                      onClick={() => removeItem(name)}
+                    >
+                      -
+                    </Button>
+                    {quantity}
+                    <Button variant="contained" onClick={() => addItem(name)}>
+                      +
+                    </Button>
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="contained"
+                    onClick={() => handleUpdateOpen({ name, quantity })}
+                  >
+                    Update
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => deleteItem(name)}
+                  >
+                    Delete
+                  </Button>
+                </Stack>
+              </Box>
+            ))
+          ) : (
+            <Typography variant="h6" color="#333" textAlign="center">
+              No items match your search.
+            </Typography>
+          )}
         </Stack>
       </Box>
     </Box>

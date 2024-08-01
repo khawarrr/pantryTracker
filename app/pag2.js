@@ -26,6 +26,21 @@ export default function Home() {
   const [updateOpen, setUpdateOpen] = useState(false);
   const [itemName, setItemName] = useState("");
   const [currentItem, setCurrentItem] = useState(null);
+  const [filteredInventory, setFilteredInventory] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  //for filter query
+  const handleSearchChange = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    if (query) {
+      setFilteredInventory(
+        inventory.filter(({ name }) => name.toLowerCase().includes(query))
+      );
+    } else {
+      setFilteredInventory(inventory);
+    }
+  };
 
   const updateInventory = async () => {
     const snapshot = query(collection(firestore, "inventory"));
@@ -135,6 +150,15 @@ export default function Home() {
       alignItems="center"
       gap={2}
     >
+      <Box width="800px" mb={2}>
+        <TextField
+          label="Search Items"
+          variant="outlined"
+          fullWidth
+          value={searchQuery}
+          onChange={handleSearchChange}
+        />
+      </Box>
       <Modal open={open} onClose={handleClose}>
         <Box
           position="absolute"
