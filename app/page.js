@@ -288,7 +288,7 @@ export default function Home() {
             ))
           ) : (
             <Typography variant="h6" color="#333" textAlign="center">
-              No items match your search.
+              Please Add Some Items.
             </Typography>
           )}
         </Stack>
